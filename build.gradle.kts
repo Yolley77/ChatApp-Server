@@ -28,3 +28,16 @@ dependencies {
     testImplementation("io.ktor:ktor-server-tests-jvm:$ktor_version")
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit:$kotlin_version")
 }
+
+// ./gradlew build
+// scp -r .\build\libs\com.chatapp.ktor-sample-0.0.1.jar pi@192.168.2.135:~/Documents/ChatAppServer/
+// java -jar com.chatapp.ktor-sample-0.0.1.jar
+// BUILD EXECUTABLE JAR
+tasks.jar {
+    duplicatesStrategy = DuplicatesStrategy.INCLUDE
+    manifest {
+        attributes("Main-Class" to "com.chatapp.ApplicationKt")
+    }
+
+    from(configurations.compileClasspath.get().map { if (it.isDirectory()) it else zipTree(it) })
+}
