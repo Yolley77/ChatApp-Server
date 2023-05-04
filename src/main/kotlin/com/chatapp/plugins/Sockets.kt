@@ -9,7 +9,6 @@ import java.time.*
 import java.util.*
 import kotlin.collections.LinkedHashSet
 
-// fixme залить на гитхаб
 fun Application.configureSockets() {
     install(WebSockets) {
         pingPeriod = Duration.ofSeconds(15)
@@ -24,12 +23,18 @@ fun Application.configureSockets() {
             val thisConnection = Connection(this)
             connections += thisConnection
             try {
-                send("You are connected! There are ${connections.count()} users here.")
+                val userLogin = (incoming.receive() as? Frame.Text)?.readText()
+                thisConnection.userLogin = setFreeLogin(userLogin, connections)
+                connections.forEach {
+                    it.session.send("${thisConnection.userLogin} подключился! Теперь нас ${connections.count()}.")
+                }
                 for (frame in incoming) {
                     frame as? Frame.Text ?: continue
                     val receivedText = frame.readText()
-                    val textWithUsername = "[${thisConnection.name}]: $receivedText"
-                    println("sending --> $textWithUsername")
+                    println("RECEIVING <<<--- --- $receivedText")
+
+                    val textWithUsername = "[${thisConnection.userLogin}]: $receivedText"
+                    println("SENDING --- --->>> $textWithUsername")
                     connections.forEach {
                         it.session.send(textWithUsername)
                     }
@@ -37,9 +42,19 @@ fun Application.configureSockets() {
             } catch (e: Exception) {
                 println(e.localizedMessage)
             } finally {
+                connections.forEach {
+                    it.session.send("${thisConnection.userLogin} отключился, нас ${connections.count() - 1}.")
+                }
                 println("Removing $thisConnection!")
                 connections -= thisConnection
             }
         }
     }
+}
+
+fun setFreeLogin(login: String?, connections: MutableSet<Connection>): String {
+    connections.forEach { connection ->
+        if (connection.userLogin == login) return connection.name
+    }
+    return login ?: connections.last().name
 }
